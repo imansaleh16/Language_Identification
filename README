@@ -3,6 +3,7 @@ Installation:
 bash install.sh
 
 Compiles maven projects lang_id and mallet.
+Please extract files in land_id/data and lang_id/model_data to be able to run language identification scripts.
 
 Dataset:
 ========
@@ -14,34 +15,34 @@ To identify the language of a document, please place the document in the current
 
 Naive Bayes language identifier:
 ================================
-1. Train and test: 
-bash train_test_naive.sh
-
-2. Identify language of document: 
+1. Identify language of document:
 bash naive.sh test_doc
+
+2. Train and test:
+bash train_test_naive.sh
 
 
 SVM language identifier:
 ========================
-1. Train and test: 
+1. Identify language of document:
+bash svm.sh test_doc
+
+2. Train and test: 
 bash train_test_svm.sh
 
 Trains a liblinear [2] SVM classifier using default parameters.
 
-2. Identify language of document: 
-bash svm.sh test_doc
-
 
 Labeled LDA language identifier:
 ================================
-1. Train and test:
+
+1. Identify language of document:
+bash llda.sh test_doc
+
+2. Train and test:
 bash train_test_llda.sh
 
 Trains labeled LDA technique [3], a variation of LDA topic modeling technique where topics are known a priori and correspond to user tags. In the case of language identification, languages are considered tags.
-
-2. Identify language of document:
-bash llda.sh test_doc
-
 
 References
 ==========
