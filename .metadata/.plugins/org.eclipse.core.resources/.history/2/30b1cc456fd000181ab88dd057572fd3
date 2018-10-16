@@ -1,0 +1,173 @@
+package lang_id;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
+
+import com.google.common.collect.BiMap;
+
+import cc.mallet.topics.LabeledLDA;
+import utils.Utils;
+
+public class LLDA {
+	
+	private final int I_GRAM = 4;
+	
+	private final String S_MODEL_DATA_FOLDER = "model_data/";
+	private static final String S_DATA_FOLDER = "data/";
+	private final String S_LLDA_OUT = S_DATA_FOLDER + "docsME.llda.4grams.predictions";
+	private final String S_LLDA_TOPIC_KEYS = S_MODEL_DATA_FOLDER + "llda_topic_keys";
+	private final String S_LLDA_MODEL = S_MODEL_DATA_FOLDER + "llda.model.ser";
+	
+	private final static String S_TRAIN = S_DATA_FOLDER + "/docsMR.llda";
+	private final static String S_TEST = S_DATA_FOLDER + "/docsME.llda";
+	private final String S_TEST_LABELS = S_DATA_FOLDER + "docsME.labels";
+	
+	private HashMap<String, HashMap<String, Integer>> hmshmsiConfusionMatrix = new HashMap<String, HashMap<String, Integer>>();
+	private HashMap<Integer, String> hmisLangIndexes = new HashMap<Integer, String>();
+	private HashMap<String, String> hmssLangNames;
+	
+	public static void main(String[] args) throws IOException {
+		LLDA llda_classifier = new LLDA();
+		
+		if(args[0].compareTo("ngrams") == 0)
+		{
+			llda_classifier.prepareDataForLLDA(S_TRAIN);
+			llda_classifier.prepareDataForLLDA(S_TEST);
+		}
+		else if (args[0].compareTo("eval") == 0)
+		{
+			llda_classifier.calculatePrecisionRecallF1();
+		}
+	}
+	
+	public void prepareDataForLLDA(String sTrainFile) throws IOException
+	{
+		BufferedReader brTrain = new BufferedReader(new FileReader(sTrainFile));
+		BufferedWriter bwTrain = new BufferedWriter(new FileWriter(sTrainFile + "." + I_GRAM + "grams"));
+		
+		String sLine = "";
+		String sGram = "";
+		String sOut = "";
+		
+		String[] saTokens;
+		
+		while((sLine=brTrain.readLine())!=null)
+		{
+			saTokens = sLine.split("\t");
+			bwTrain.write(saTokens[0] + "\t" + saTokens[1] + "\t");
+			
+			sOut = "";
+			
+			for(int i=0; i<saTokens[2].length()-I_GRAM + 1; i++)
+			{
+				sGram = saTokens[2].substring(i, i + I_GRAM);
+				sOut += sGram.replaceAll("\\s", "0x20") + " ";
+			}
+			bwTrain.write(sOut.trim() + "\n");
+		}
+		
+		brTrain.close();
+		bwTrain.close();
+	}
+	
+	public void calculatePrecisionRecallF1() throws IOException
+	{
+		loadLanguages();
+		
+		BufferedReader brLLDAOut = new BufferedReader(new FileReader(S_LLDA_OUT));
+		BufferedReader brTestLabels = new BufferedReader(new FileReader(S_TEST_LABELS));
+		
+		BufferedWriter bw = new BufferedWriter(new FileWriter("llda_answer"));
+		
+		HashMap<String, Double> hmsdLangProbTest = new HashMap<String, Double>();
+		HashMap<String, Integer> hmsiSubConfusionMatrix;
+		
+		String sLine;
+		String sInstLang="";
+		String sAnswer="";
+		String [] saTokens;
+		
+		int iTotalCorrect = 0;
+		int iTotalDocs = 0;
+		
+		hmssLangNames = Utils.loadLabels();
+		
+		while((sLine=brLLDAOut.readLine())!=null)
+		{
+			sInstLang = brTestLabels.readLine();
+			
+			iTotalDocs ++;
+			hmsdLangProbTest = loadLLDAOutProbabilities();
+			
+			sAnswer = Utils.getMaxProb(hmsdLangProbTest);
+			
+			if(hmshmsiConfusionMatrix.containsKey(sInstLang))
+			{
+				hmsiSubConfusionMatrix = hmshmsiConfusionMatrix.get(sInstLang);
+			}
+			else{
+				hmsiSubConfusionMatrix = new HashMap<String,Integer>();
+			}
+			
+			if(hmsiSubConfusionMatrix.containsKey(sAnswer))
+			{
+				hmsiSubConfusionMatrix.put(sAnswer, hmsiSubConfusionMatrix.get(sAnswer)+1);
+			}
+			else
+			{
+				hmsiSubConfusionMatrix.put(sAnswer, 1);
+			}
+			
+			hmshmsiConfusionMatrix.put(sInstLang, hmsiSubConfusionMatrix);
+			
+			if(sAnswer.compareTo(sInstLang)==0)
+			{
+				iTotalCorrect ++;
+			}		
+		}
+		
+		System.out.println("Correct = " + iTotalCorrect	+ ", Total = " + iTotalDocs);
+		Utils.calculatePrecisionRecallF1(hmshmsiConfusionMatrix, hmisLangIndexes.size(), hmssLangNames);
+		
+		brLLDAOut.close();
+		brTestLabels.close();
+		bw.close();
+	}
+
+	private HashMap<String, Double> loadLLDAOutProbabilities(String sLine) {
+		HashMap<String, Double> hmsdLangProbTest = new HashMap<String, Double>();
+		String[] saTokens = sLine.split("\t");
+		
+		for(int i=1; i<saTokens.length; i++)
+		{
+			//System.out.println(i + ", " + hmisLangIndexes.get(i-1) + ", " + saTokens[i]);
+			hmsdLangProbTest.put(hmisLangIndexes.get(i-1), new Double(saTokens[i]));
+		}
+		return hmsdLangProbTest;
+	}
+
+	private void loadLanguages() throws IOException {
+		BufferedReader brLanguagesKeys = new BufferedReader(new FileReader(S_LLDA_TOPIC_KEYS));
+		String sLine;
+		String[] saTokens;
+		
+		while((sLine=brLanguagesKeys.readLine())!=null)
+		{
+			saTokens = sLine.split("\t");
+			hmisLangIndexes.put(new Integer(saTokens[0]).intValue(), saTokens[1]);
+		}
+		//System.out.println(hmisLangIndexes);
+		brLanguagesKeys.close();
+	}
+	
+	public void getDocLanguage(String sDocPath) throws IOException, ClassNotFoundException
+	{
+		prepareDataForLLDA(sDocPath);
+		LabeledLDA.test(S_LLDA_MODEL, sDocPath + "." + I_GRAM + "grams");
+	}
+}

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<launchConfiguration type="org.eclipse.jdt.launching.localJavaApplication">
+<listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
+<listEntry value="/mallet/src/cc/mallet/topics/LabeledLDA.java"/>
+</listAttribute>
+<listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_TYPES">
+<listEntry value="1"/>
+</listAttribute>
+<booleanAttribute key="org.eclipse.jdt.launching.ATTR_USE_START_ON_FIRST_THREAD" value="true"/>
+<stringAttribute key="org.eclipse.jdt.launching.CLASSPATH_PROVIDER" value="org.eclipse.m2e.launchconfig.classpathProvider"/>
+<stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="cc.mallet.topics.LabeledLDA"/>
+<stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="test --input &quot;../lang_id/data/docsMR.llda.4grams&quot; --output-prefix labeled. --output-model &quot;../lang_id/model_data/llda.model.ser&quot; --inferencer-filename &quot;../lang_id/model_data/llda_inference.model&quot; --evaluator-filename &quot;../lang_id/model_data/llda_evaluator.model&quot; --output-topic-keys &quot;../lang_id/model_data/llda_topic_keys&quot; --output-topic-docs &quot;../lang_id/model_data/llda_topic_docs&quot; --num-iterations 2000"/>
+<stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="mallet"/>
+<stringAttribute key="org.eclipse.jdt.launching.SOURCE_PATH_PROVIDER" value="org.eclipse.m2e.launchconfig.sourcepathProvider"/>
+</launchConfiguration>

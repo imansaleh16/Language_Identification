@@ -1,0 +1,108 @@
+package lang_id;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.HashMap;
+
+import de.bwaldvogel.liblinear.Problem;
+
+public class SVM {
+	private final int I_GRAM = 10;
+	private final String S_MODEL_DATA_FOLDER = "model_data/";
+	private static final String S_DATA_FOLDER = "data/";
+	private final String S_SVM_DIC = S_MODEL_DATA_FOLDER + I_GRAM + "gram_SVM_dic";
+	
+	private HashMap<String, Integer> hmssiUniqueNGramsIndexes = new HashMap<String, Integer>();
+	
+	public static void main(String[] args) throws IOException {
+		SVM svm_classifier = new SVM();
+		svm_classifier.generateDictionary(S_DATA_FOLDER + "/docsMR.txt");
+	}
+	
+	public void generateDictionary(String sTrainFile) throws IOException
+	{
+		BufferedReader brTrain = new BufferedReader(new FileReader(sTrainFile));
+		
+		String sLine = "";
+		String sGram = "";
+		int iIndex = 0;
+		
+		while((sLine=brTrain.readLine())!=null)
+		{
+			for(int i=0; i<sLine.length()-I_GRAM+1; i++)
+			{
+				sGram = sLine.substring(i, i+I_GRAM);
+				if(!hmssiUniqueNGramsIndexes.containsKey(sGram))
+				{
+					hmssiUniqueNGramsIndexes.put(sGram, iIndex);
+					iIndex += 1;
+				}
+			}
+		}
+		
+		Serializer.serializeDictionary(hmssiUniqueNGramsIndexes, S_SVM_DIC);
+		brTrain.close();
+	}
+	
+	public void createSVMFile(String sTrainFile, String sTrainFileLabels) throws IOException
+	{
+		// Feature index (ngram index), frequency
+		HashMap<Integer, Integer> hmiiFeaturesDic = new HashMap<Integer, Integer>();
+		
+		BufferedReader brTrain = new BufferedReader(new FileReader(sTrainFile));
+		BufferedReader brTrainLabel = new BufferedReader(new FileReader(sTrainFileLabels));
+		
+		BufferedWriter bwTrain = new BufferedWriter(new FileWriter(sTrainFile + ".svm"));
+		
+		String sLine = "";
+		String sGram = "";
+		String sInstLang = "";
+		
+		int iIndex = -1;
+		Problem problem = new Problem();
+		problem.n = hmssiUniqueNGramsIndexes.size(); // num of features
+		
+		hmssiUniqueNGramsIndexes = Serializer.deserializeSVMDic(S_SVM_DIC);
+		
+		while((sLine=brTrain.readLine())!=null)
+		{
+			sInstLang = brTrainLabel.readLine();
+			
+			for(int i=0; i<sLine.length()-I_GRAM+1; i++)
+			{
+				sGram = sLine.substring(i, i+I_GRAM);
+				if(hmiiFeaturesDic.containsKey(sGram))
+				{
+					iIndex = hmiiFeaturesDic.get(sGram);
+				}
+				else{
+					System.out.println("NGram not found ...");
+				}
+				
+				if(hmiiFeaturesDic.containsKey(iIndex))
+				{
+					hmiiFeaturesDic.put(iIndex, hmiiFeaturesDic.get(iIndex)+1);
+				}
+				else{
+					hmiiFeaturesDic.put(iIndex, 1);
+				}
+			}
+			
+			
+			
+			/*
+			bwTrain.write(sInstLang + " ");
+			for(Integer iFeatureIndex:hmiiFeaturesDic.keySet())
+				bwTrain.write(iFeatureIndex + ":" + hmiiFeaturesDic.get(iFeatureIndex) + " ");
+			bwTrain.newLine();
+			*/
+			
+			hmiiFeaturesDic.clear();
+		}
+		brTrain.close();
+		bwTrain.close();
+	}
+}

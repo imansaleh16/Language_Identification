@@ -1,0 +1,386 @@
+package lang_id;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.HashMap;
+
+
+import utils.Utils;
+
+public class NaiveBayes {
+	
+	private HashMap<String, HashMap<String, Integer>> hmshmsiLangNGramCounts = new HashMap<String, HashMap<String, Integer>>();
+	//DB db;
+    //private ConcurrentMap<String, HashMap<String, Integer>> hmshmsiLangNGramCounts;
+	private HashMap<String, Integer> hmsiLangTokensCount = new HashMap<String, Integer>();
+	private HashMap<String, Double> hmsdLangProb = new HashMap<String, Double>();
+	private static HashMap<String, String> hmssLangNames = new HashMap<String, String>();
+	private HashMap<String, HashMap<String, Integer>> hmshmsiConfusionMatrix = new HashMap<String, HashMap<String, Integer>>();
+	
+	private int iV = 0;
+	private static int IGRAM = 4;
+	
+	private final static String S_LANG_TOTAL_TOKENS_COUNTS = IGRAM + "gram_tokens_count_per_lang";
+	private final static String S_VOC_SIZE = IGRAM + "gram_voc_size";
+	private final static String S_LANG_PROP = IGRAM + "gram_lang_props";
+	//private final static String S_LANG_NAMES = "lang_names";
+		
+	private final String S_LANG_NGRAM_COUNTS = IGRAM + "gram_count_per_lang";
+	private final static String S_MODEL_DATA_FOLDER = "model_data/";
+	private final static String S_DATA_FOLDER = "data/";
+	
+	private final static String S_TRAIN = S_DATA_FOLDER + "docsMR.txt";
+	private final static String S_TRAIN_LABELS = S_DATA_FOLDER + "docsMR.labels";
+	private final static String S_TEST = S_DATA_FOLDER + "docsME.txt";
+	private final static String S_TEST_LABELS = S_DATA_FOLDER + "docsME.labels";
+	private final static String S_LANG_NAMES = S_DATA_FOLDER + "labels.csv";
+	
+	public static void main(String[] args) throws IOException{
+		NaiveBayes nb = new NaiveBayes();
+		if(args[0].compareTo("train")==0)
+		{
+			hmssLangNames = Utils.loadLabels(S_LANG_NAMES);
+			nb.createTrainCounts(S_TRAIN, S_TRAIN_LABELS, IGRAM);
+		}
+		else if(args[0].compareTo("test")==0)
+		{
+			hmssLangNames = Utils.loadLabels(S_DATA_FOLDER + "labels.csv");
+			nb.test(S_TEST, S_TEST_LABELS, IGRAM);
+		}
+		else
+			nb.getDocLanguage(args[0]);
+	}
+	
+	public void createTrainCounts(String sTrainFile, String sLabelsFile, 
+			int iGramSize) throws IOException
+	{
+		BufferedReader brTrain = new BufferedReader(new FileReader(sTrainFile));
+		BufferedReader brTrainLabels = new BufferedReader(new FileReader(sLabelsFile));
+		
+		String sLine = "";
+		String sGram = "";
+		String sInstLang = "";
+
+		int iTotalDocs = 0;
+		
+		HashMap<String, Integer> hmsiNGramCounts;
+		
+		System.out.println("Training naive bayes model ...");
+		
+		/*
+		 * Traverse training file line by line, each line contains
+		 * one document.
+		 */
+		while((sLine=brTrain.readLine())!=null)
+		{
+			iTotalDocs ++;
+			
+			// Read the language of the document.
+			sInstLang = brTrainLabels.readLine();
+			
+			/* 
+			 * Store number of documents belonging to a language to calculate
+			 * p(lang) = count of lang docs / total docs
+			 */
+			if(hmsdLangProb.containsKey(sInstLang))
+				hmsdLangProb.put(sInstLang, hmsdLangProb.get(sInstLang)+1);
+			else
+				hmsdLangProb.put(sInstLang, 1.0);
+			
+			// Create ngrams and store them for each language.
+			for(int i=0; i<sLine.length()-iGramSize+1; i++)
+			{
+				sGram = sLine.substring(i, i+iGramSize).toLowerCase();
+				
+				// Language exists in dictionary of languages tokens. 
+				if(hmshmsiLangNGramCounts.containsKey(sInstLang))
+				{
+					// Get ngram counts dictionary for the language
+					hmsiNGramCounts = hmshmsiLangNGramCounts.get(sInstLang);
+					/* 
+					 * Store total count of ngrams for a language, one more ngram
+					 * found.
+					 */
+					hmsiLangTokensCount.put(sInstLang, hmsiLangTokensCount.get(sInstLang)+1);
+				}
+				else
+				{
+					hmsiNGramCounts = new HashMap<String, Integer>();
+					hmsiLangTokensCount.put(sInstLang, 1);
+				}
+				
+				// Check if the ngram was seen before for this language.
+				if(hmsiNGramCounts.containsKey(sGram))
+				{
+					hmsiNGramCounts.put(sGram, hmsiNGramCounts.get(sGram)+1);
+				}
+				else
+				{
+					hmsiNGramCounts.put(sGram, 1);
+				}
+				
+				hmshmsiLangNGramCounts.put(sInstLang, hmsiNGramCounts);
+			}
+		}
+		
+		/*
+		 * Count the vocabulary, used for Laplace smoothing.
+		 * Total number of unique ngrams in all languages.
+		 */
+		// used for debugging
+		int iTotalTest;
+		for(String sLanguage:hmshmsiLangNGramCounts.keySet())
+		{
+			iTotalTest = 0;
+			hmsiNGramCounts = hmshmsiLangNGramCounts.get(sLanguage);
+			// Count vocabulary of all languages, unique ngrams only
+			iV += hmsiNGramCounts.size();
+			for(String g :hmsiNGramCounts.keySet())
+			{
+				iTotalTest += hmsiNGramCounts.get(g);
+			}
+			/*System.out.println(sLanguage + " ngrams = " +  iTotalTest 
+					+ ", " + hmsiLangTokensCount.get(sLanguage));*/
+		}
+		
+		/*
+		 * Calculate p(lang)
+		 */
+		double dProb;
+		for(String sLanguage:hmsdLangProb.keySet())
+		{
+			dProb = (double)hmsdLangProb.get(sLanguage)/(double)iTotalDocs;
+			hmsdLangProb.put(sLanguage, dProb);
+			System.out.println(hmssLangNames.get(sLanguage) + " probability = " + dProb);
+		}
+		
+		System.out.println("Total Vocabulary = " + iV);
+		
+		/*
+		 * Serialize dictionaries and vocabulary size to use it in testing.
+		 */
+		Serializer.serializeDictionary(hmshmsiLangNGramCounts, S_MODEL_DATA_FOLDER + S_LANG_NGRAM_COUNTS);
+		Serializer.serializeDictionary(hmsiLangTokensCount, S_MODEL_DATA_FOLDER + S_LANG_TOTAL_TOKENS_COUNTS);
+		Serializer.serializeDictionary(hmsdLangProb, S_MODEL_DATA_FOLDER + S_LANG_PROP);
+		
+		storeVocabSize();
+		
+		brTrain.close();
+		brTrainLabels.close();
+	}
+	/*
+	private void closeLangNGramCountDB() {
+		db.close();		
+	}
+	*/
+	private void storeVocabSize() throws IOException{
+		BufferedWriter bwVocab = new BufferedWriter(new FileWriter(new File(S_MODEL_DATA_FOLDER + S_VOC_SIZE)));
+		bwVocab.write(String.valueOf(iV));
+		bwVocab.close();		
+	}
+	
+	private void readVocabSize() throws IOException{
+		BufferedReader bwVocab = new BufferedReader(new FileReader(new File(S_MODEL_DATA_FOLDER + S_VOC_SIZE)));
+		iV = Integer.parseInt(bwVocab.readLine());
+		bwVocab.close();
+	}
+	/*
+	private void openLangNGramCountDB()
+	{
+		db = DBMaker
+	            .fileDB(sModelDataFolder + "ngrams.db")
+	            .transactionEnable()
+	            .closeOnJvmShutdown()
+	            .fileChannelEnable()
+	            .fileMmapEnable()
+	            .make();
+	    hmshmsiLangNGramCounts = db.hashMap("map", Serializer.STRING, Serializer.ELSA).createOrOpen();
+	}
+	*/
+	
+	public void test(String sTestFile, String sTestFileLabels, int iGramSize) throws IOException
+	{
+		System.out.println("Testing naive bayes model ...");
+		
+		if(hmsiLangTokensCount.size()==0)
+			hmsiLangTokensCount = Serializer.deserialize_hm_s_i(S_MODEL_DATA_FOLDER + S_LANG_TOTAL_TOKENS_COUNTS);
+		if(hmshmsiLangNGramCounts.size()==0)
+			hmshmsiLangNGramCounts = Serializer.deserialize_hm_s_hmsi(S_MODEL_DATA_FOLDER + S_LANG_NGRAM_COUNTS);
+		if(hmsdLangProb.size()==0)
+			hmsdLangProb = Serializer.deserialize_hm_s_d(S_MODEL_DATA_FOLDER + S_LANG_PROP);
+		
+		HashMap<String, Integer> hmsiSubConfusionMatrix;
+		
+		readVocabSize();
+		System.out.println("Models loaded ... ");
+		
+		BufferedReader brTest = new BufferedReader(new FileReader(sTestFile));
+		BufferedReader brTestLabels = new BufferedReader(new FileReader(sTestFileLabels));
+		
+		BufferedWriter bw = new BufferedWriter(new FileWriter("answer"));
+		
+		String sLine = "";
+		
+		String sInstLang = "";
+		String sAnswer = "";
+		
+		int iTotalCorrect = 0;
+		int iTotalDocs = 0;
+		
+		// Stores probability of document belonging to each language
+		HashMap<String, Double> hmsdLangProbTest = new HashMap<String, Double>();
+		
+		
+		while((sLine=brTest.readLine())!=null)
+		{
+			iTotalDocs ++;
+			
+			// Read the language of the document.
+			sInstLang = brTestLabels.readLine();
+			
+			hmsdLangProbTest = calculateLangProbs(sLine, iGramSize);
+			
+			sAnswer = Utils.getMaxProb(hmsdLangProbTest);
+			
+			bw.write(sAnswer + "\n");
+			//System.out.println(sAnswer + ", Gold lang = " + sInstLang);
+			
+			if(hmshmsiConfusionMatrix.containsKey(sInstLang))
+			{
+				hmsiSubConfusionMatrix = hmshmsiConfusionMatrix.get(sInstLang);
+			}
+			else{
+				hmsiSubConfusionMatrix = new HashMap<String,Integer>();
+			}
+			
+			if(hmsiSubConfusionMatrix.containsKey(sAnswer))
+			{
+				hmsiSubConfusionMatrix.put(sAnswer, hmsiSubConfusionMatrix.get(sAnswer)+1);
+			}
+			else
+			{
+				hmsiSubConfusionMatrix.put(sAnswer, 1);
+			}
+			
+			hmshmsiConfusionMatrix.put(sInstLang, hmsiSubConfusionMatrix);
+			
+			if(sAnswer.compareTo(sInstLang)==0)
+			{
+				iTotalCorrect ++;
+			}
+		}
+		System.out.println("Correct = " + iTotalCorrect 
+				+ ", Total = " + iTotalDocs);
+		
+		Utils.calculatePrecisionRecallF1(hmshmsiConfusionMatrix, hmsdLangProb.size(),hmssLangNames);
+		brTest.close();
+		brTestLabels.close();
+		bw.close();
+	}
+	
+	public void getDocLanguage(String sDocPath) throws IOException
+	{
+		//openLangNGramCountDB();
+		if(!new File(sDocPath).exists())
+		{
+			System.out.println("This file does not exist ...");
+			return;
+		}
+		
+		String sAnswer = "";
+		String sLine = "";
+		String sDoc = "";
+		
+		HashMap<String, Double> hmsdLangProbTest = new HashMap<String, Double>();
+		
+		System.out.println("Loading models ... ");
+		
+		if(hmsiLangTokensCount.size()==0)
+			hmsiLangTokensCount = Serializer.deserialize_hm_s_i(S_MODEL_DATA_FOLDER + S_LANG_TOTAL_TOKENS_COUNTS);
+		if(hmshmsiLangNGramCounts.size()==0)
+			hmshmsiLangNGramCounts = Serializer.deserialize_hm_s_hmsi(S_MODEL_DATA_FOLDER + S_LANG_NGRAM_COUNTS);
+		if(hmsdLangProb.size()==0)
+			hmsdLangProb = Serializer.deserialize_hm_s_d(S_MODEL_DATA_FOLDER + S_LANG_PROP);
+		if(hmssLangNames.size()==0)
+			hmssLangNames = Serializer.deserialize_hm_s_s(S_MODEL_DATA_FOLDER + S_LANG_NAMES);
+		
+		
+		readVocabSize();
+		
+		System.out.println("Models loaded ... ");
+		
+		BufferedReader br = new BufferedReader(new FileReader(sDocPath));
+		while((sLine=br.readLine())!=null)
+		{
+			sDoc += sLine + " ";
+		}
+		br.close();
+		sDoc = sDoc.trim();
+		
+		hmsdLangProbTest = calculateLangProbs(sDoc, IGRAM);
+		sAnswer = Utils.getMaxProb(hmsdLangProbTest);
+		System.out.println(hmssLangNames.get(sAnswer));
+	}
+	
+	private HashMap<String, Double> calculateLangProbs (String sDoc, int iGramSize){
+		String sGram = "";
+		int iNGramCount;
+		double dNGramProb;
+		
+		HashMap<String, Integer> hmsiNGramCounts;
+		HashMap<String, Double> hmsdLangProbTest = new HashMap<String, Double>();
+		
+		
+		// Create ngrams and store them for each language.
+		for(int i=0; i<sDoc.length()-iGramSize+1; i++)
+		{
+			sGram = sDoc.substring(i, i+iGramSize).toLowerCase();
+			//System.out.println(sGram);
+			/*
+			 * For each language, lookup the ngram, get its frequency,
+			 * divide by total number of tokens in the language, get the
+			 * logarithm of quotient, and sum.
+			 */
+			for(String sLanguage:hmshmsiLangNGramCounts.keySet())
+			{
+				/* 
+				 * Initialize probability of document belonging to
+				 * a language to log(prob(lang)).
+				 */
+				hmsdLangProbTest.put(sLanguage, Math.log(hmsdLangProb.get(sLanguage)));
+			}
+			
+			for(String sLanguage:hmshmsiLangNGramCounts.keySet())
+			{
+				hmsiNGramCounts = hmshmsiLangNGramCounts.get(sLanguage);
+				
+				// Get count of ngram for this language.
+				if(hmsiNGramCounts.containsKey(sGram))
+				{
+					iNGramCount = hmsiNGramCounts.get(sGram);
+				}
+				else{
+					iNGramCount = 0;
+				}
+				
+				/* 
+				 * Add 1 for Laplace smoothing. 
+				 * Divide by total number of tokens for the language
+				 * + vocabulary size. The latter is for Laplace smoothing.
+				 */
+				dNGramProb = (double)(iNGramCount + 1)/(double)(hmsiLangTokensCount.get(sLanguage) + iV);
+				/* 
+				 * Calculate probability of doc belonging to language 
+				 * log(prob(lang))+ sum log(prob(w_i|lang_j))
+				 */
+				hmsdLangProbTest.put(sLanguage, hmsdLangProbTest.get(sLanguage) + Math.log(dNGramProb));
+			}
+		}
+		//System.out.println(hmsdLangProbTest);
+		return hmsdLangProbTest;
+	}
+}

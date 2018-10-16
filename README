@@ -1,0 +1,59 @@
+Installation: 
+=============
+bash install.sh
+
+Compiles maven projects lang_id and mallet.
+
+Dataset:
+========
+For all language identification techniques used in this program, the dataset used for training and testing is lang_id/data/docsMR.txt (training set, 5000 documents) and lang_id/data/docsME.txt (testing set, 1000 documents) and their gold labels lang_id/data/docsMR.labels and lang_id/data/docsME.labels. Data is obtained from [1] and contains 44 languages.
+
+All models mentioned below were trained using lowercased 4 character grams to be able to train it on a variety of languages without using language specific tools or resources. Scripts for training and testing print macro and micro F1, in addition to recall, precision, F1 for each language.
+
+To identify the language of a document, please place the document in the current folder. Two test documents are already placed in the folder: test_doc and test_doc_2.
+
+Naive Bayes language identifier:
+================================
+1. Train and test: 
+bash train_test_naive.sh
+
+2. Identify language of document: 
+bash naive.sh test_doc
+
+
+SVM language identifier:
+========================
+1. Train and test: 
+bash train_test_svm.sh
+
+Trains a liblinear [2] SVM classifier using default parameters.
+
+2. Identify language of document: 
+bash svm.sh test_doc
+
+
+Labeled LDA language identifier:
+================================
+1. Train and test:
+bash train_test_llda.sh
+
+Trains labeled LDA technique [3], a variation of LDA topic modeling technique where topics are known a priori and correspond to user tags. In the case of language identification, languages are considered tags.
+
+2. Identify language of document:
+bash llda.sh test_doc
+
+
+References
+==========
+[1] Automatic Detection and Language Identification of Multilingual Documents.  
+    Marco Lui, Jey Han Lau, Timothy Baldwin. 2(Feb):27−40, 2014. [pdf] (Presented 
+    at EACL 2014.) http://www.transacl.org/wp-content/uploads/2014/02/38.pdf.
+
+[2] LIBLINEAR: A library for large linear classification.
+    R.-E. Fan, K.-W. Chang, C.-J. Hsieh, X.-R. Wang, and C.-J. Lin.
+    Journal of Machine Learning Research 9(2008), 1871-1874.
+
+[3] Labeled LDA: a supervised topic model for credit attribution in multi-labeled corpora.
+    Daniel Ramage, David Hall, Ramesh Nallapati, Christopher D. Manning.
+    Proceedings of the 2009 Conference on Empirical Methods in Natural Language Processing: 
+    Volume 1 - Volume 1. Pages 248-256.

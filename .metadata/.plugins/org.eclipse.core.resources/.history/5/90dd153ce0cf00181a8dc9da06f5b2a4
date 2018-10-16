@@ -1,0 +1,142 @@
+package utils;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.HashMap;
+
+import lang_id.Serializer;
+
+public abstract class Utils {
+	public static void calculatePrecisionRecallF1(HashMap<String, HashMap<String, Integer>> hmshmsiConfusionMatrix, int iNumOfLanguages, HashMap<String, String> hmssLangNames)
+	{
+		int iTP;
+		int iFP;
+		int iFN;
+		
+		int iTPAvg = 0;
+		int iFPAvg = 0;
+		int iFNAvg = 0;
+		
+		double dPrecision;
+		double dRecall;
+		double dF1;
+		
+		double dF1Macro = 0;
+		double dPMacro = 0;
+		double dRMacro = 0;
+		
+		double dF1Micro = 0;
+		double dPMicro = 0;
+		double dRMicro = 0;
+		
+		HashMap<String, Integer> hm;
+		/* 
+		 * precision = tp / tp + fp
+		 * recall = tp / tp + fn
+		 */
+		for(String sLanguage:hmshmsiConfusionMatrix.keySet())
+		{
+			hm = hmshmsiConfusionMatrix.get(sLanguage);
+			
+			if(hm.containsKey(sLanguage))
+				iTP = hm.get(sLanguage);
+			else
+				iTP = 0;
+			
+			iFP = 0;
+			iFN = 0;
+			
+			for(String sLanguage_2:hm.keySet())
+			{
+				if(sLanguage.compareTo(sLanguage_2)!=0)
+					iFN += hm.get(sLanguage_2);
+			}
+			
+			for(String sLanguage_2:hmshmsiConfusionMatrix.keySet())
+			{
+				if(sLanguage_2.compareTo(sLanguage)!=0)
+				{
+					hm = hmshmsiConfusionMatrix.get(sLanguage_2);
+					if(hm.containsKey(sLanguage))
+						iFP += hm.get(sLanguage);
+				}
+			}
+			
+			if(iTP==0 && iFP==0)
+				dPrecision = 0;
+			else
+				dPrecision = (double)iTP/((double)iTP + (double)iFP);
+			
+			if(iTP==0 && iFN==0)
+				dRecall = 0;
+			else
+				dRecall = (double)iTP/((double)iTP + (double)iFN);
+			
+			if(dPrecision==0 && dRecall==0)
+				dF1 = 0;
+			else
+				dF1 = (2 * dPrecision * dRecall) / (dPrecision + dRecall);
+			
+			System.out.println(hmssLangNames.get(sLanguage) + ", tp = " + iTP + ", fp = " + iFP
+					+ ", fn = " + iFN + ", precision = " + dPrecision 
+					+ ", recall = " + dRecall + ", F1 = " + dF1);
+			
+			dF1Macro += dF1;
+			dPMacro += dPrecision;
+			dRMacro += dRecall;
+			
+			iTPAvg += iTP;
+			iFPAvg += iFP;
+			iFNAvg += iFN;
+		}
+		
+		dF1Macro /= iNumOfLanguages;
+		
+		dPMicro = (double)iTPAvg / (double)(iTPAvg + iFPAvg);
+		dRMicro = (double)iTPAvg / (double)(iTPAvg + iFNAvg);
+		dF1Micro = (2 * dRMicro * dPMicro)/(dPMicro + dRMicro);
+		
+		System.out.println("Macro F1 = " + dF1Macro + ", micro F1 = " + dF1Micro);
+	}
+	
+	public static HashMap<String, String> loadLabels(String sFile) throws IOException
+	{
+		HashMap<String, String> hmssLangNames = new HashMap<String, String>();
+		BufferedReader brLabels = new BufferedReader(new FileReader(sFile));
+		
+		String sLine = "";
+		String[] saTokens;
+		
+		sLine=brLabels.readLine();
+		
+		while((sLine=brLabels.readLine())!=null)
+		{
+			saTokens = sLine.split(";");
+			//System.out.println(saTokens[0] + " = " + saTokens[1]);
+			//hmssLangNames.put(saTokens[0], saTokens[1]);
+			hmssLangNames.put(saTokens[2], saTokens[1]);
+		}
+		
+		brLabels.close();
+		return hmssLangNames;
+	}
+	
+	public String getMaxProb(HashMap<String, Double> hmsdLangProbTest) {
+		double dMaxProb = -1000000.0;
+		String sAnswer = "";
+		
+		// Output most probable language
+		for(String sLanguage:hmsdLangProbTest.keySet())
+		{
+			if(hmsdLangProbTest.get(sLanguage) > dMaxProb)
+			{
+				dMaxProb = hmsdLangProbTest.get(sLanguage);
+				sAnswer = sLanguage;
+			}
+		}
+		return sAnswer;
+	}
+	
+}

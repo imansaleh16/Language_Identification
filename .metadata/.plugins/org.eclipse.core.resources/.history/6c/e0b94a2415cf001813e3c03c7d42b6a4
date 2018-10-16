@@ -1,0 +1,8 @@
+package utils;
+
+public abstract class Utils {
+	public static void calculateConfusionMatrix()
+	{
+		
+	}
+}

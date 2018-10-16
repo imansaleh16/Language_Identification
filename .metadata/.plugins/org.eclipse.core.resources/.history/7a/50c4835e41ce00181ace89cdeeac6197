@@ -1,0 +1,133 @@
+package lang_id;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.HashMap;
+
+import de.bwaldvogel.liblinear.Feature;
+import de.bwaldvogel.liblinear.Problem;
+
+public class SVM {
+	private final int I_GRAM = 10;
+	private final String S_MODEL_DATA_FOLDER = "model_data/";
+	private static final String S_DATA_FOLDER = "data/";
+	private final String S_SVM_DIC = S_MODEL_DATA_FOLDER + I_GRAM + "gram_SVM_dic";
+	private final String S_LANG_INDEX_DIC = S_MODEL_DATA_FOLDER + "lang_index_dic";
+	
+	private HashMap<String, Integer> hmsiUniqueNGramsIndexes = new HashMap<String, Integer>();
+	private HashMap<String, Integer> hmsiLangIndexes = new HashMap<String, Integer>();
+	
+	public static void main(String[] args) throws IOException {
+		SVM svm_classifier = new SVM();
+		svm_classifier.generateDictionary(S_DATA_FOLDER + "/docsMR.txt", S_DATA_FOLDER + "/docsMR.labels");
+	}
+	
+	public void generateDictionary(String sTrainFile, String sLabels) throws IOException
+	{
+		BufferedReader brTrain = new BufferedReader(new FileReader(sTrainFile));
+		BufferedReader brTrainLabels = new BufferedReader(new FileReader(sLabels));
+		
+		String sLine = "";
+		String sGram = "";
+		String sLang = "";
+		int iIndex = 0;
+		int iLangIndex = 0;
+		
+		while((sLine=brTrain.readLine())!=null)
+		{
+			sLang = brTrainLabels.readLine();
+			if(!hmsiLangIndexes.containsKey(sLang))
+			{
+				hmsiLangIndexes.put(sLang, iLangIndex);
+				iLangIndex ++;
+			}
+			
+			for(int i=0; i<sLine.length()-I_GRAM+1; i++)
+			{
+				sGram = sLine.substring(i, i+I_GRAM);
+				if(!hmsiUniqueNGramsIndexes.containsKey(sGram))
+				{
+					hmsiUniqueNGramsIndexes.put(sGram, iIndex);
+					iIndex += 1;
+				}
+			}
+		}
+		
+		Serializer.serializeDictionary(hmsiUniqueNGramsIndexes, S_SVM_DIC);
+		Serializer.serializeDictionary(hmsiLangIndexes, S_LANG_INDEX_DIC);
+		brTrainLabels.close();
+		brTrain.close();
+	}
+	
+	public void createSVMFile(String sTrainFile, String sTrainFileLabels) throws IOException
+	{
+		// Feature index (ngram index), frequency
+		HashMap<Integer, Integer> hmiiFeaturesDic = new HashMap<Integer, Integer>();
+		
+		BufferedReader brTrain = new BufferedReader(new FileReader(sTrainFile));
+		BufferedReader brTrainLabel = new BufferedReader(new FileReader(sTrainFileLabels));
+		
+		BufferedWriter bwTrain = new BufferedWriter(new FileWriter(sTrainFile + ".svm"));
+		
+		String sLine = "";
+		String sGram = "";
+		String sInstLang = "";
+		
+		int iDocsCount = 0;
+		
+		int iIndex = -1;
+		
+		Problem problem = new Problem();
+		Feature[][] fFeatures;
+		
+		hmsiUniqueNGramsIndexes = Serializer.deserialize_hm_s_i(S_SVM_DIC);
+		hmsiLangIndexes = Serializer.deserialize_hm_s_i(S_LANG_INDEX_DIC)
+		
+		while((sLine=brTrain.readLine())!=null)
+		{
+			iDocsCount ++;
+			sInstLang = brTrainLabel.readLine();
+			
+			for(int i=0; i<sLine.length()-I_GRAM+1; i++)
+			{
+				sGram = sLine.substring(i, i+I_GRAM);
+				if(hmiiFeaturesDic.containsKey(sGram))
+				{
+					iIndex = hmiiFeaturesDic.get(sGram);
+				}
+				else{
+					System.out.println("NGram not found ...");
+				}
+				
+				if(hmiiFeaturesDic.containsKey(iIndex))
+				{
+					hmiiFeaturesDic.put(iIndex, hmiiFeaturesDic.get(iIndex)+1);
+				}
+				else{
+					hmiiFeaturesDic.put(iIndex, 1);
+				}
+			}
+			
+			/*
+			bwTrain.write(sInstLang + " ");
+			for(Integer iFeatureIndex:hmiiFeaturesDic.keySet())
+				bwTrain.write(iFeatureIndex + ":" + hmiiFeaturesDic.get(iFeatureIndex) + " ");
+			bwTrain.newLine();
+			*/
+			
+			hmiiFeaturesDic.clear();
+		}
+		
+		problem.n = hmsiUniqueNGramsIndexes.size(); // num of features
+		problem.l = iDocsCount; // number of training examples
+		problem.x = fFeatures;
+		
+		
+		brTrain.close();
+		brTrainLabel.close();
+		bwTrain.close();
+	}
+}

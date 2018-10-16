@@ -1,0 +1,2 @@
+eclipse.preferences.version=1
+prefWatchExpressions=<?xml version\="1.0" encoding\="UTF-8" standalone\="no"?>\n<watchExpressions>\n<expression enabled\="true" text\="elementData"/>\n<expression enabled\="true" text\="hmsiLangTokensCount.get(sLanguage)"/>\n<expression enabled\="true" text\="hmsdLangProbTest.get(sLanguage)"/>\n<expression enabled\="true" text\="hmsdLangProbTest.get(sLanguage) + Math.log(dNGramProb)"/>\n<expression enabled\="true" text\="bmsiLangIndexes.get(sInstLang)"/>\n</watchExpressions>\n

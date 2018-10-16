@@ -1,0 +1,72 @@
+package lang_id;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.util.HashMap;
+
+public class Serializer {
+	private void serializeDictionary(Object dic, String sOutFile) throws IOException
+	{
+		//FSTObjectOutput o = new FSTObjectOutput(new FileOutputStream(new File(sOutFile)));
+		ObjectOutputStream o = new ObjectOutputStream(new FileOutputStream(new File(sOutFile)));
+		o.writeObject(dic);
+		o.close();
+	}
+	
+	@SuppressWarnings("unchecked")
+	private void deserializeNGramCounts() throws IOException
+	{
+		//FSTObjectInput i = new FSTObjectInput(new FileInputStream(new File(S_MODEL_DATA_FOLDER + S_LANG_NGRAM_COUNTS)));
+		ObjectInputStream i = new ObjectInputStream(new FileInputStream(new File(S_MODEL_DATA_FOLDER + S_LANG_NGRAM_COUNTS)));
+		try {
+			hmshmsiLangNGramCounts = (HashMap<String, HashMap<String, Integer>>)i.readObject();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+		i.close();
+	}
+	
+	
+	@SuppressWarnings("unchecked")
+	private void deserializeLangTokens() throws IOException
+	{
+		//FSTObjectInput i = new FSTObjectInput(new FileInputStream(new File(S_MODEL_DATA_FOLDER + S_LANG_TOTAL_TOKENS_COUNTS)));
+		ObjectInputStream i = new ObjectInputStream(new FileInputStream(new File(S_MODEL_DATA_FOLDER + S_LANG_TOTAL_TOKENS_COUNTS)));
+		try {
+			hmsiLangTokensCount = (HashMap<String, Integer>)i.readObject();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+		i.close();
+	}
+	
+	@SuppressWarnings("unchecked")
+	private void deserializeLangProps() throws IOException
+	{
+		//FSTObjectInput i = new FSTObjectInput(new FileInputStream(new File(S_MODEL_DATA_FOLDER + S_LANG_PROP)));
+		ObjectInputStream i = new ObjectInputStream(new FileInputStream(new File(S_MODEL_DATA_FOLDER + S_LANG_PROP)));
+		try {
+			hmsdLangProb = (HashMap<String, Double>)i.readObject();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+		i.close();
+	}
+	
+	@SuppressWarnings("unchecked")
+	private void deserializeLangNames() throws IOException
+	{
+		//FSTObjectInput i = new FSTObjectInput(new FileInputStream(new File(S_MODEL_DATA_FOLDER + S_LANG_NAMES)));
+		ObjectInputStream i = new ObjectInputStream(new FileInputStream(new File(S_MODEL_DATA_FOLDER + S_LANG_NAMES)));
+		try {
+			hmssLangNames = (HashMap<String, String>)i.readObject();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+		i.close();
+	}
+}

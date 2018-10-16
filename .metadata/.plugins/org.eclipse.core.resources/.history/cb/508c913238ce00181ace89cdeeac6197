@@ -1,0 +1,50 @@
+package lang_id;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+
+public class LLDA {
+	
+	private final int I_GRAM = 4;
+	private final String S_MODEL_DATA_FOLDER = "model_data/";
+	private static final String S_DATA_FOLDER = "data/";
+	
+	public static void main(String[] args) throws IOException {
+		LLDA llda_classifier = new LLDA();
+		llda_classifier.prepareDataForLLDA(S_DATA_FOLDER + "/docsMR.llda");
+	}
+	
+	public void prepareDataForLLDA(String sTrainFile) throws IOException
+	{
+		BufferedReader brTrain = new BufferedReader(new FileReader(sTrainFile));
+		BufferedWriter bwTrain = new BufferedWriter(new FileWriter(sTrainFile + "." + I_GRAM + "grams"));
+		
+		String sLine = "";
+		String sGram = "";
+		String sOut = "";
+		
+		String[] saTokens;
+		
+		while((sLine=brTrain.readLine())!=null)
+		{
+			saTokens = sLine.split("\t");
+			bwTrain.write(saTokens[0] + "\t" + saTokens[1] + "\t");
+			
+			sOut = "";
+			
+			for(int i=0; i<saTokens[2].length()-I_GRAM + 1; i++)
+			{
+				sGram = saTokens[2].substring(i, i + I_GRAM);
+				sOut += sGram + " ";
+			}
+			bwTrain.write(sOut.trim() + "\n");
+		}
+		
+		brTrain.close();
+		bwTrain.close();
+	}
+	
+}
