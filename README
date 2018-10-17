@@ -3,10 +3,11 @@ Installation:
 bash install.sh
 
 Compiles maven projects lang_id and mallet.
-Please extract files in land_id/data and lang_id/model_data to be able to run language identification scripts.
 
 Quick usage: 
--------------
+============
+After installation, extract files lang_id/data.tar.gz and lang_id/model_data.tar.gz.
+
 bash naive.sh test_doc
 bash svm.sh test_doc
 bash llda.sh test_doc
