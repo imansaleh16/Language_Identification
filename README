@@ -5,6 +5,12 @@ bash install.sh
 Compiles maven projects lang_id and mallet.
 Please extract files in land_id/data and lang_id/model_data to be able to run language identification scripts.
 
+Quick usage: 
+-------------
+bash naive.sh test_doc
+bash svm.sh test_doc
+bash llda.sh test_doc
+
 Dataset:
 ========
 For all language identification techniques used in this program, the dataset used for training and testing is lang_id/data/docsMR.txt (training set, 5000 documents) and lang_id/data/docsME.txt (testing set, 1000 documents) and their gold labels lang_id/data/docsMR.labels and lang_id/data/docsME.labels. Data is obtained from [1] and contains 44 languages.

@@ -34,7 +34,9 @@ public class LLDA {
 		
 		if(args[0].compareTo("ngrams") == 0)
 		{
+			System.out.println("Creating character grams for training file, please be patient ...");
 			llda_classifier.prepareDataForLLDA(S_TRAIN);
+			System.out.println("Creating character grams for test file, please be patient ...");
 			llda_classifier.prepareDataForLLDA(S_TEST);
 		}
 		else if (args[0].compareTo("eval") == 0)
