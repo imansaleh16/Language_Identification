@@ -6,7 +6,7 @@ Compiles maven projects lang_id and mallet.
 
 Quick usage: 
 ============
-After installation, extract files lang_id/data.tar.gz and lang_id/model_data.tar.gz.
+After installation, extract files lang_id/data.tar.gz, lang_id/model_data.tar.gz and lang_id/liblinear-2.21/docsMR.txt.svm.model.tar.gz.
 
 bash naive.sh test_doc
 bash svm.sh test_doc
