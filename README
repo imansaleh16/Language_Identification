@@ -19,6 +19,8 @@ All models mentioned below were trained using lowercased 4 character grams to be
 
 To identify the language of a document, please place the document in the current folder. Two test documents are already placed in the folder: test_doc and test_doc_2.
 
+Evaluation results for each of the three models are reported in Results_Naive.csv, Results_SVM.csv, Results_LLDA.csv.
+
 Naive Bayes language identifier:
 ================================
 1. Identify language of document:

@@ -938,6 +938,8 @@ public class LabeledLDA implements Serializable {
 		MarginalProbEstimator estimator;
 		PrintStream psOutEval;
 		
+		System.out.println("Loading model ...");
+		
 		ObjectInputStream ois = new ObjectInputStream (new FileInputStream (sModelFile + "_pipe"));
 		Pipe pipe = (Pipe) ois.readObject();
 		ois.close();
